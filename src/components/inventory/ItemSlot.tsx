@@ -9,11 +9,18 @@ interface ItemSlotProps {
   showQuantity?: boolean;
   showDurability?: boolean;
   onClick?: () => void;
-  onDragStart?: () => void;
-  onDragEnd?: () => void;
   isSelected?: boolean;
   isDropTarget?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
   className?: string;
+  // Drag and Drop
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
 const sizeClasses = {
@@ -47,7 +54,15 @@ export const ItemSlot = ({
   onClick,
   isSelected,
   isDropTarget,
+  isDragging,
+  isDragOver,
   className,
+  draggable = true,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: ItemSlotProps) => {
   return (
     <motion.div
@@ -58,17 +73,40 @@ export const ItemSlot = ({
         item && rarityGlows[item.rarity],
         isSelected && 'item-slot-active ring-2 ring-primary',
         isDropTarget && 'border-primary border-dashed bg-primary/10',
+        isDragging && 'opacity-50 scale-95 border-primary',
+        isDragOver && 'border-primary border-2 bg-primary/20 scale-105 shadow-[0_0_20px_rgba(162,0,255,0.5)]',
         className
       )}
       onClick={onClick}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      draggable={draggable && !!item}
+      onDragStart={onDragStart as any}
+      onDragEnd={onDragEnd as any}
+      onDragOver={onDragOver as any}
+      onDragLeave={onDragLeave as any}
+      onDrop={onDrop as any}
+      whileHover={!isDragging ? { scale: 1.05 } : {}}
+      whileTap={!isDragging ? { scale: 0.95 } : {}}
       initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ 
+        opacity: isDragging ? 0.5 : 1, 
+        scale: isDragOver ? 1.05 : 1 
+      }}
       transition={{ duration: 0.2 }}
     >
+      {/* Drop indicator overlay */}
+      {isDragOver && (
+        <motion.div
+          className="absolute inset-0 border-2 border-primary rounded-lg pointer-events-none z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          layoutId="drop-indicator"
+        >
+          <div className="absolute inset-0 bg-primary/20 animate-pulse" />
+        </motion.div>
+      )}
+
       {/* Background glow effect */}
-      {item && item.rarity !== 'common' && (
+      {item && item.rarity !== 'common' && !isDragging && (
         <div 
           className={cn(
             'absolute inset-0 opacity-20 blur-sm',
@@ -83,7 +121,10 @@ export const ItemSlot = ({
       {item ? (
         <>
           {/* Item Icon */}
-          <span className="text-2xl relative z-10 select-none">
+          <span className={cn(
+            "text-2xl relative z-10 select-none transition-transform",
+            isDragging && "scale-75"
+          )}>
             {item.icon}
           </span>
 
@@ -117,8 +158,14 @@ export const ItemSlot = ({
         </>
       ) : (
         /* Empty Slot Indicator */
-        <div className="w-full h-full flex items-center justify-center opacity-20">
-          <div className="w-3 h-3 border border-muted-foreground/50 rounded-sm" />
+        <div className={cn(
+          "w-full h-full flex items-center justify-center transition-opacity",
+          isDragOver ? "opacity-50" : "opacity-20"
+        )}>
+          <div className={cn(
+            "w-3 h-3 border rounded-sm transition-colors",
+            isDragOver ? "border-primary bg-primary/30" : "border-muted-foreground/50"
+          )} />
         </div>
       )}
     </motion.div>

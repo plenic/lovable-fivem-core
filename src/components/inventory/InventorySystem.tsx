@@ -53,6 +53,10 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const handleSlotsChange = (newSlots: InventorySlot[]) => {
+    setSlots(newSlots);
+  };
+
   const handleItemUse = (item: InventoryItem) => {
     console.log('Using item:', item.name);
     // In a real implementation, this would trigger the item's use effect
@@ -141,6 +145,7 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
                   onItemUse={handleItemUse}
                   onItemDrop={handleItemDrop}
                   onItemGive={handleItemGive}
+                  onSlotsChange={handleSlotsChange}
                 />
               </div>
             </div>
@@ -159,7 +164,7 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
               <span>[TAB] Schließen</span>
               <span>[1-6] Schnellzugriff</span>
               <span>[LMB] Item auswählen</span>
-              <span>[RMB] Kontextmenü</span>
+              <span>[Drag] Items verschieben</span>
             </div>
           </motion.div>
         </motion.div>

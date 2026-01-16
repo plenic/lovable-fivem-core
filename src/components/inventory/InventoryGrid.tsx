@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ItemSlot } from './ItemSlot';
 import { ItemTooltip } from './ItemTooltip';
 import { WeightDisplay } from './WeightDisplay';
 import { InventorySlot, InventoryItem, ItemCategory } from '@/types/inventory';
 import { cn } from '@/lib/utils';
-import { Search, Filter, Grid3X3, LayoutGrid } from 'lucide-react';
+import { Search, Grid3X3, LayoutGrid } from 'lucide-react';
 
 interface InventoryGridProps {
   slots: InventorySlot[];
@@ -15,6 +15,7 @@ interface InventoryGridProps {
   onItemUse?: (item: InventoryItem) => void;
   onItemDrop?: (item: InventoryItem) => void;
   onItemGive?: (item: InventoryItem) => void;
+  onSlotsChange?: (slots: InventorySlot[]) => void;
 }
 
 const categoryFilters: { key: ItemCategory | 'all'; label: string; icon: string }[] = [
@@ -27,6 +28,13 @@ const categoryFilters: { key: ItemCategory | 'all'; label: string; icon: string 
   { key: 'misc', label: 'Sonstiges', icon: '📎' },
 ];
 
+interface DragState {
+  isDragging: boolean;
+  sourceSlotId: number | null;
+  draggedItem: InventoryItem | null;
+  overSlotId: number | null;
+}
+
 export const InventoryGrid = ({
   slots,
   maxWeight,
@@ -35,12 +43,21 @@ export const InventoryGrid = ({
   onItemUse,
   onItemDrop,
   onItemGive,
+  onSlotsChange,
 }: InventoryGridProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | 'all'>('all');
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
   const [gridSize, setGridSize] = useState<'small' | 'normal'>('normal');
+  
+  // Drag and Drop State
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    sourceSlotId: null,
+    draggedItem: null,
+    overSlotId: null,
+  });
 
   const selectedItem = selectedSlot !== null ? slots[selectedSlot]?.item : null;
 
@@ -59,6 +76,8 @@ export const InventoryGrid = ({
   }, [slots, searchQuery, selectedCategory]);
 
   const handleSlotClick = (slotId: number) => {
+    if (dragState.isDragging) return;
+    
     const slot = slots[slotId];
     if (slot?.item) {
       setSelectedSlot(slotId);
@@ -69,6 +88,100 @@ export const InventoryGrid = ({
       setShowTooltip(false);
     }
   };
+
+  // Drag Handlers
+  const handleDragStart = useCallback((e: React.DragEvent, slotId: number, item: InventoryItem) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', slotId.toString());
+    
+    // Create custom drag image
+    const dragImage = document.createElement('div');
+    dragImage.innerHTML = item.icon;
+    dragImage.className = 'text-4xl fixed -top-[1000px]';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 30, 30);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
+
+    setDragState({
+      isDragging: true,
+      sourceSlotId: slotId,
+      draggedItem: item,
+      overSlotId: null,
+    });
+    setShowTooltip(false);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragState({
+      isDragging: false,
+      sourceSlotId: null,
+      draggedItem: null,
+      overSlotId: null,
+    });
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, slotId: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (dragState.overSlotId !== slotId) {
+      setDragState(prev => ({ ...prev, overSlotId: slotId }));
+    }
+  }, [dragState.overSlotId]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only clear if we're actually leaving the slot
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget?.closest('.item-slot')) {
+      setDragState(prev => ({ ...prev, overSlotId: null }));
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetSlotId: number) => {
+    e.preventDefault();
+    
+    const sourceSlotId = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    if (sourceSlotId === targetSlotId) {
+      handleDragEnd();
+      return;
+    }
+
+    // Swap items between slots
+    const newSlots = [...slots];
+    const sourceItem = newSlots[sourceSlotId].item;
+    const targetItem = newSlots[targetSlotId].item;
+
+    // Check if we can stack items
+    if (sourceItem && targetItem && 
+        sourceItem.id === targetItem.id && 
+        targetItem.quantity < targetItem.maxStack) {
+      // Stack items
+      const spaceInTarget = targetItem.maxStack - targetItem.quantity;
+      const amountToMove = Math.min(sourceItem.quantity, spaceInTarget);
+      
+      newSlots[targetSlotId] = {
+        ...newSlots[targetSlotId],
+        item: { ...targetItem, quantity: targetItem.quantity + amountToMove }
+      };
+      
+      if (sourceItem.quantity - amountToMove <= 0) {
+        newSlots[sourceSlotId] = { ...newSlots[sourceSlotId], item: null };
+      } else {
+        newSlots[sourceSlotId] = {
+          ...newSlots[sourceSlotId],
+          item: { ...sourceItem, quantity: sourceItem.quantity - amountToMove }
+        };
+      }
+    } else {
+      // Swap items
+      newSlots[sourceSlotId] = { ...newSlots[sourceSlotId], item: targetItem };
+      newSlots[targetSlotId] = { ...newSlots[targetSlotId], item: sourceItem };
+    }
+
+    onSlotsChange?.(newSlots);
+    handleDragEnd();
+  }, [slots, onSlotsChange, handleDragEnd]);
 
   return (
     <motion.div
@@ -83,6 +196,15 @@ export const InventoryGrid = ({
           INVENTAR
         </h2>
         <div className="flex items-center gap-2">
+          {dragState.isDragging && (
+            <motion.span 
+              className="text-xs text-primary font-gaming"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              🔄 Verschieben...
+            </motion.span>
+          )}
           <button
             onClick={() => setGridSize(gridSize === 'normal' ? 'small' : 'normal')}
             className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -153,7 +275,15 @@ export const InventoryGrid = ({
                 item={slot.item}
                 size={gridSize === 'normal' ? 'md' : 'sm'}
                 isSelected={selectedSlot === slot.slotId}
+                isDragging={dragState.sourceSlotId === slot.slotId}
+                isDragOver={dragState.overSlotId === slot.slotId && dragState.sourceSlotId !== slot.slotId}
                 onClick={() => handleSlotClick(slot.slotId)}
+                draggable={true}
+                onDragStart={(e) => slot.item && handleDragStart(e, slot.slotId, slot.item)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, slot.slotId)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, slot.slotId)}
                 showQuantity={true}
                 showDurability={true}
               />
@@ -162,9 +292,16 @@ export const InventoryGrid = ({
         </div>
       </div>
 
+      {/* Drag Hint */}
+      <div className="mt-3 text-center">
+        <span className="text-[10px] text-muted-foreground/60 font-gaming">
+          Items per Drag & Drop verschieben • Gleiche Items werden gestapelt
+        </span>
+      </div>
+
       {/* Item Tooltip Modal */}
       <AnimatePresence>
-        {showTooltip && selectedItem && (
+        {showTooltip && selectedItem && !dragState.isDragging && (
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
             initial={{ opacity: 0 }}
