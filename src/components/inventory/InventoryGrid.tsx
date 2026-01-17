@@ -2,10 +2,12 @@ import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ItemSlot } from './ItemSlot';
 import { ItemTooltip } from './ItemTooltip';
+import { ItemContextMenu } from './ItemContextMenu';
 import { WeightDisplay } from './WeightDisplay';
 import { InventorySlot, InventoryItem, ItemCategory } from '@/types/inventory';
 import { cn } from '@/lib/utils';
 import { Search, Grid3X3, LayoutGrid } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface InventoryGridProps {
   slots: InventorySlot[];
@@ -15,6 +17,9 @@ interface InventoryGridProps {
   onItemUse?: (item: InventoryItem) => void;
   onItemDrop?: (item: InventoryItem) => void;
   onItemGive?: (item: InventoryItem) => void;
+  onItemSplit?: (item: InventoryItem, slotId: number, amount: number) => void;
+  onItemExamine?: (item: InventoryItem) => void;
+  onItemDestroy?: (item: InventoryItem, slotId: number) => void;
   onSlotsChange?: (slots: InventorySlot[]) => void;
 }
 
@@ -43,8 +48,12 @@ export const InventoryGrid = ({
   onItemUse,
   onItemDrop,
   onItemGive,
+  onItemSplit,
+  onItemExamine,
+  onItemDestroy,
   onSlotsChange,
 }: InventoryGridProps) => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ItemCategory | 'all'>('all');
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -260,42 +269,70 @@ export const InventoryGrid = ({
           'grid gap-2',
           gridSize === 'normal' ? 'grid-cols-8' : 'grid-cols-10'
         )}>
-          {filteredSlots.map((slot, index) => (
-            <motion.div
-              key={slot.slotId}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: (slot as any).hidden ? 0.3 : 1, 
-                scale: 1,
-                filter: (slot as any).hidden ? 'grayscale(1)' : 'none'
-              }}
-              transition={{ duration: 0.15, delay: index * 0.01 }}
-            >
-              <ItemSlot
-                item={slot.item}
-                size={gridSize === 'normal' ? 'md' : 'sm'}
-                isSelected={selectedSlot === slot.slotId}
-                isDragging={dragState.sourceSlotId === slot.slotId}
-                isDragOver={dragState.overSlotId === slot.slotId && dragState.sourceSlotId !== slot.slotId}
-                onClick={() => handleSlotClick(slot.slotId)}
-                draggable={true}
-                onDragStart={(e) => slot.item && handleDragStart(e, slot.slotId, slot.item)}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => handleDragOver(e, slot.slotId)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, slot.slotId)}
-                showQuantity={true}
-                showDurability={true}
-              />
-            </motion.div>
-          ))}
+          {filteredSlots.map((slot, index) => {
+            const slotContent = (
+              <motion.div
+                key={slot.slotId}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  opacity: (slot as any).hidden ? 0.3 : 1, 
+                  scale: 1,
+                  filter: (slot as any).hidden ? 'grayscale(1)' : 'none'
+                }}
+                transition={{ duration: 0.15, delay: index * 0.01 }}
+              >
+                <ItemSlot
+                  item={slot.item}
+                  size={gridSize === 'normal' ? 'md' : 'sm'}
+                  isSelected={selectedSlot === slot.slotId}
+                  isDragging={dragState.sourceSlotId === slot.slotId}
+                  isDragOver={dragState.overSlotId === slot.slotId && dragState.sourceSlotId !== slot.slotId}
+                  onClick={() => handleSlotClick(slot.slotId)}
+                  draggable={true}
+                  onDragStart={(e) => slot.item && handleDragStart(e, slot.slotId, slot.item)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, slot.slotId)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, slot.slotId)}
+                  showQuantity={true}
+                  showDurability={true}
+                />
+              </motion.div>
+            );
+
+            // Wrap items with context menu
+            if (slot.item) {
+              return (
+                <ItemContextMenu
+                  key={slot.slotId}
+                  item={slot.item}
+                  onUse={(item) => onItemUse?.(item)}
+                  onExamine={(item) => {
+                    onItemExamine?.(item);
+                    toast({
+                      title: item.name,
+                      description: item.description,
+                    });
+                  }}
+                  onSplit={(item, amount) => onItemSplit?.(item, slot.slotId, amount)}
+                  onGive={(item) => onItemGive?.(item)}
+                  onDrop={(item) => onItemDrop?.(item)}
+                  onDestroy={(item) => onItemDestroy?.(item, slot.slotId)}
+                >
+                  {slotContent}
+                </ItemContextMenu>
+              );
+            }
+
+            return slotContent;
+          })}
         </div>
       </div>
 
       {/* Drag Hint */}
       <div className="mt-3 text-center">
         <span className="text-[10px] text-muted-foreground/60 font-gaming">
-          Items per Drag & Drop verschieben • Gleiche Items werden gestapelt
+          [LMB] Auswählen • [RMB] Kontextmenü • [Drag] Verschieben
         </span>
       </div>
 
