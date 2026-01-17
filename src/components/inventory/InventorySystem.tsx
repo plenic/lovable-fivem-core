@@ -75,6 +75,50 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
     // In a real implementation, this would open a player selection
   };
 
+  const handleItemSplit = (item: InventoryItem, slotId: number, amount: number) => {
+    console.log('Splitting item:', item.name, 'Amount:', amount);
+    
+    // Find empty slot for split items
+    const emptySlotIndex = slots.findIndex(slot => slot.item === null);
+    
+    if (emptySlotIndex === -1) {
+      console.log('No empty slot available for split');
+      return;
+    }
+
+    setSlots(prev => {
+      const newSlots = [...prev];
+      const originalItem = newSlots[slotId].item;
+      
+      if (originalItem && originalItem.quantity > amount) {
+        // Reduce original stack
+        newSlots[slotId] = {
+          ...newSlots[slotId],
+          item: { ...originalItem, quantity: originalItem.quantity - amount }
+        };
+        
+        // Create new stack
+        newSlots[emptySlotIndex] = {
+          ...newSlots[emptySlotIndex],
+          item: { ...originalItem, quantity: amount }
+        };
+      }
+      
+      return newSlots;
+    });
+  };
+
+  const handleItemExamine = (item: InventoryItem) => {
+    console.log('Examining item:', item.name, '-', item.description);
+  };
+
+  const handleItemDestroy = (item: InventoryItem, slotId: number) => {
+    console.log('Destroying item:', item.name);
+    setSlots(prev => prev.map((slot, idx) => 
+      idx === slotId ? { ...slot, item: null } : slot
+    ));
+  };
+
   const handleEquipmentClick = (slot: EquipmentSlotData) => {
     console.log('Equipment slot clicked:', slot.slot);
   };
@@ -145,6 +189,9 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
                   onItemUse={handleItemUse}
                   onItemDrop={handleItemDrop}
                   onItemGive={handleItemGive}
+                  onItemSplit={handleItemSplit}
+                  onItemExamine={handleItemExamine}
+                  onItemDestroy={handleItemDestroy}
                   onSlotsChange={handleSlotsChange}
                 />
               </div>
@@ -163,8 +210,9 @@ export const InventorySystem = ({ isOpen = true, onClose }: InventorySystemProps
             <div className="flex justify-center gap-6 mt-4 text-xs text-muted-foreground/60 font-gaming">
               <span>[TAB] Schließen</span>
               <span>[1-6] Schnellzugriff</span>
-              <span>[LMB] Item auswählen</span>
-              <span>[Drag] Items verschieben</span>
+              <span>[LMB] Auswählen</span>
+              <span>[RMB] Kontextmenü</span>
+              <span>[Drag] Verschieben</span>
             </div>
           </motion.div>
         </motion.div>
