@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ForeState Inventory</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="inventory-container" class="hidden">
+        <!-- Header -->
+        <div class="inventory-header">
+            <div class="logo-section">
+                <img src="assets/logo.png" alt="ForeState" class="logo">
+                <div class="title-section">
+                    <span class="title">FORESTATE</span>
+                    <span class="subtitle">Inventar System</span>
+                </div>
+            </div>
+            <div class="player-info">
+                <span class="player-name" id="player-name">Spieler</span>
+                <span class="player-id" id="player-id">ID: 0</span>
+            </div>
+            <button class="close-btn" id="close-btn">&times;</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="inventory-content">
+            <!-- Character Panel -->
+            <div class="character-panel glass-panel">
+                <h3 class="panel-title">CHARAKTER</h3>
+                <div class="character-preview">
+                    <div class="character-silhouette"></div>
+                </div>
+                <div class="equipment-grid">
+                    <div class="equipment-slot" data-slot="head" title="Kopf">
+                        <span class="slot-icon">🎩</span>
+                        <span class="slot-label">Kopf</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="face" title="Gesicht">
+                        <span class="slot-icon">😎</span>
+                        <span class="slot-label">Gesicht</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="torso" title="Oberkörper">
+                        <span class="slot-icon">👕</span>
+                        <span class="slot-label">Oberkörper</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="vest" title="Weste">
+                        <span class="slot-icon">🦺</span>
+                        <span class="slot-label">Weste</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="legs" title="Hose">
+                        <span class="slot-icon">👖</span>
+                        <span class="slot-label">Hose</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="feet" title="Schuhe">
+                        <span class="slot-icon">👟</span>
+                        <span class="slot-label">Schuhe</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="bag" title="Tasche">
+                        <span class="slot-icon">🎒</span>
+                        <span class="slot-label">Tasche</span>
+                    </div>
+                    <div class="equipment-slot weapon-slot" data-slot="weapon_primary" title="Primärwaffe">
+                        <span class="slot-icon">🔫</span>
+                        <span class="slot-label">Primär</span>
+                    </div>
+                    <div class="equipment-slot weapon-slot" data-slot="weapon_secondary" title="Sekundärwaffe">
+                        <span class="slot-icon">🔪</span>
+                        <span class="slot-label">Sekundär</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="phone" title="Handy">
+                        <span class="slot-icon">📱</span>
+                        <span class="slot-label">Handy</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="keys" title="Schlüssel">
+                        <span class="slot-icon">🔑</span>
+                        <span class="slot-label">Schlüssel</span>
+                    </div>
+                    <div class="equipment-slot" data-slot="wallet" title="Geldbörse">
+                        <span class="slot-icon">💳</span>
+                        <span class="slot-label">Geldbörse</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Grid -->
+            <div class="inventory-panel glass-panel">
+                <div class="inventory-header-bar">
+                    <h3 class="panel-title">INVENTAR</h3>
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="Item suchen...">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="category-filters">
+                    <button class="filter-btn active" data-category="all">📦 Alle</button>
+                    <button class="filter-btn" data-category="weapon">🔫 Waffen</button>
+                    <button class="filter-btn" data-category="medical">🏥 Medizin</button>
+                    <button class="filter-btn" data-category="food">🍔 Essen</button>
+                    <button class="filter-btn" data-category="drink">💧 Trinken</button>
+                    <button class="filter-btn" data-category="tool">🔧 Werkzeug</button>
+                    <button class="filter-btn" data-category="misc">📎 Sonstiges</button>
+                </div>
+
+                <!-- Weight Display -->
+                <div class="weight-display">
+                    <span class="weight-label">Gewicht:</span>
+                    <div class="weight-bar">
+                        <div class="weight-fill" id="weight-fill"></div>
+                    </div>
+                    <span class="weight-text" id="weight-text">0 / 50 kg</span>
+                </div>
+
+                <!-- Item Grid -->
+                <div class="item-grid" id="item-grid">
+                    <!-- Slots will be generated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Access Bar -->
+        <div class="quickbar glass-panel">
+            <div class="quickbar-slot" data-slot="1">
+                <span class="slot-number">1</span>
+            </div>
+            <div class="quickbar-slot" data-slot="2">
+                <span class="slot-number">2</span>
+            </div>
+            <div class="quickbar-slot" data-slot="3">
+                <span class="slot-number">3</span>
+            </div>
+            <div class="quickbar-slot" data-slot="4">
+                <span class="slot-number">4</span>
+            </div>
+            <div class="quickbar-slot" data-slot="5">
+                <span class="slot-number">5</span>
+            </div>
+            <div class="quickbar-slot" data-slot="6">
+                <span class="slot-number">6</span>
+            </div>
+        </div>
+
+        <!-- Keybind Hints -->
+        <div class="keybind-hints">
+            <span>[TAB] Schließen</span>
+            <span>[1-6] Schnellzugriff</span>
+            <span>[LMB] Auswählen</span>
+            <span>[RMB] Kontextmenü</span>
+            <span>[Drag] Verschieben</span>
+        </div>
+
+        <!-- Context Menu -->
+        <div class="context-menu hidden" id="context-menu">
+            <div class="context-menu-header">
+                <span class="context-item-icon" id="context-item-icon">📦</span>
+                <div class="context-item-info">
+                    <span class="context-item-name" id="context-item-name">Item Name</span>
+                    <span class="context-item-details" id="context-item-details">1x • 0.5 kg</span>
+                </div>
+            </div>
+            <div class="context-menu-divider"></div>
+            <button class="context-btn use-btn" data-action="use">
+                <span>🔨</span> Benutzen
+            </button>
+            <button class="context-btn" data-action="examine">
+                <span>👁️</span> Untersuchen
+            </button>
+            <div class="context-menu-divider"></div>
+            <button class="context-btn split-btn" data-action="split">
+                <span>✂️</span> Teilen
+            </button>
+            <button class="context-btn" data-action="give">
+                <span>🤝</span> Geben
+            </button>
+            <button class="context-btn" data-action="drop">
+                <span>⬇️</span> Auf Boden werfen
+            </button>
+            <div class="context-menu-divider danger"></div>
+            <button class="context-btn danger-btn" data-action="destroy">
+                <span>🗑️</span> Zerstören
+            </button>
+        </div>
+
+        <!-- Item Tooltip -->
+        <div class="item-tooltip hidden" id="item-tooltip">
+            <div class="tooltip-header">
+                <span class="tooltip-icon" id="tooltip-icon">📦</span>
+                <div class="tooltip-title-section">
+                    <span class="tooltip-name" id="tooltip-name">Item Name</span>
+                    <span class="tooltip-rarity" id="tooltip-rarity">Common</span>
+                </div>
+            </div>
+            <p class="tooltip-description" id="tooltip-description">Item beschreibung...</p>
+            <div class="tooltip-stats">
+                <div class="tooltip-stat">
+                    <span class="stat-label">Gewicht:</span>
+                    <span class="stat-value" id="tooltip-weight">0.5 kg</span>
+                </div>
+                <div class="tooltip-stat">
+                    <span class="stat-label">Menge:</span>
+                    <span class="stat-value" id="tooltip-quantity">1</span>
+                </div>
+                <div class="tooltip-stat durability-stat">
+                    <span class="stat-label">Haltbarkeit:</span>
+                    <div class="durability-bar">
+                        <div class="durability-fill" id="tooltip-durability"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Give Dialog -->
+        <div class="dialog hidden" id="give-dialog">
+            <div class="dialog-content glass-panel">
+                <h3>Item geben</h3>
+                <div class="dialog-form">
+                    <label>Menge:</label>
+                    <input type="number" id="give-amount" min="1" value="1">
+                    <label>Spieler in der Nähe:</label>
+                    <select id="give-player">
+                        <option value="">Lädt...</option>
+                    </select>
+                </div>
+                <div class="dialog-buttons">
+                    <button class="btn-cancel">Abbrechen</button>
+                    <button class="btn-confirm">Geben</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Split Dialog -->
+        <div class="dialog hidden" id="split-dialog">
+            <div class="dialog-content glass-panel">
+                <h3>Item teilen</h3>
+                <div class="dialog-form">
+                    <label>Menge zum Teilen:</label>
+                    <input type="number" id="split-amount" min="1" value="1">
+                    <input type="range" id="split-slider" min="1" value="1">
+                </div>
+                <div class="dialog-buttons">
+                    <button class="btn-cancel">Abbrechen</button>
+                    <button class="btn-confirm">Teilen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
